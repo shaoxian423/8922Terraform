@@ -27,13 +27,13 @@ jobs:
             exit 1
           fi
 
-      # Install Terraform (match your local version)
+      # Install Terraform (use a stable, recent version)
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.12.1
+          terraform_version: 1.5.7  # Updated to a more recent version; adjust if needed
 
-      # Install Conftest (match your local version)
+      # Install Conftest
       - name: Install Conftest
         run: |
           wget -q https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz
@@ -45,6 +45,62 @@ jobs:
       - name: Test network connectivity
         run: |
           curl -I https://registry.terraform.io || { echo "Cannot reach Terraform registry"; exit 1; }
+
+      # Install Azure CLI
+      - name: Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az --version
+
+      # Validate Azure credentials before login
+      - name: Validate Azure credentials
+        env:
+          AZURE_USERNAME: ${{ secrets.AZURE_USERNAME }}
+        run: |
+          if [ -z "$AZURE_USERNAME" ]; then
+            echo "Error: AZURE_USERNAME is not set in GitHub Secrets"
+            exit 1
+          fi
+          echo "Azure username is set (value masked for security)"
+
+      # Login to Azure CLI with enhanced error handling
+      - name: Login to Azure CLI
+        env:
+          AZURE_USERNAME: ${{ secrets.AZURE_USERNAME }}
+          AZURE_PASSWORD: ${{ secrets.AZURE_PASSWORD }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        run: |
+          if [ -z "$AZURE_PASSWORD" ] || [ -z "$ARM_TENANT_ID" ] || [ -z "$ARM_SUBSCRIPTION_ID" ]; then
+            echo "Error: One or more required secrets (AZURE_PASSWORD, ARM_TENANT_ID, ARM_SUBSCRIPTION_ID) are not set"
+            exit 1
+          fi
+          echo "Attempting Azure login..."
+          az login --username "$AZURE_USERNAME" --password "$AZURE_PASSWORD" --tenant "$ARM_TENANT_ID" > login_output.log 2> login_error.log
+          if [ $? -ne 0 ]; then
+            echo "Azure login failed. Error details:"
+            cat login_error.log
+            exit 1
+          fi
+          echo "Azure login successful"
+          az account set --subscription "$ARM_SUBSCRIPTION_ID" 2> subscription_error.log
+          if [ $? -ne 0 ]; then
+            echo "Failed to set subscription. Error details:"
+            cat subscription_error.log
+            exit 1
+          fi
+          echo "Subscription set successfully"
+
+      # Upload login logs on failure
+      - name: Upload Azure login logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-login-logs
+          path: |
+            login_output.log
+            login_error.log
+            subscription_error.log
 
       # Initialize Terraform
       - name: Terraform Init
@@ -66,21 +122,6 @@ jobs:
             exit 1
           fi
 
-      # Install Azure CLI
-      - name: Install Azure CLI
-        run: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          az --version
-
-      # Login to Azure CLI
-      - name: Login to Azure CLI
-        env:
-          AZURE_USERNAME: ${{ secrets.AZURE_USERNAME }}
-          AZURE_PASSWORD: ${{ secrets.AZURE_PASSWORD }}
-        run: |
-          az login --username $AZURE_USERNAME --password $AZURE_PASSWORD --tenant ${{ secrets.ARM_TENANT_ID }}
-          az account set --subscription ${{ secrets.ARM_SUBSCRIPTION_ID }}
-
       # Generate Terraform plan
       - name: Terraform Plan
         id: plan
@@ -100,8 +141,8 @@ jobs:
             exit 1
           fi
 
-      # Upload logs on failure
-      - name: Upload logs on failure
+      # Upload Terraform logs on failure
+      - name: Upload Terraform logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -129,4 +170,4 @@ jobs:
 
       # Run Conftest tests
       - name: Conftest Test
-        run: conftest test tfplan.json -p policies --trace || { echo "Conftest test failed"; exit 1; }
+        run: conftest test tfplan.json -p policies --trace || { echo "Conftest test failed"; exit 1; }ß
