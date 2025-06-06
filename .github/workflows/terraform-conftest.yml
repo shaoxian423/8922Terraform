@@ -27,11 +27,11 @@ jobs:
             exit 1
           fi
 
-      # Install Terraform (use a stable, recent version)
+      # Install Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.5.7  # Updated to a more recent version; adjust if needed
+          terraform_version: 1.5.7
 
       # Install Conftest
       - name: Install Conftest
@@ -56,12 +56,15 @@ jobs:
       - name: Validate Azure credentials
         env:
           AZURE_USERNAME: ${{ secrets.AZURE_USERNAME }}
+          AZURE_PASSWORD: ${{ secrets.AZURE_PASSWORD }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         run: |
-          if [ -z "$AZURE_USERNAME" ]; then
-            echo "Error: AZURE_USERNAME is not set in GitHub Secrets"
+          if [ -z "$AZURE_USERNAME" ] || [ -z "$AZURE_PASSWORD" ] || [ -z "$ARM_TENANT_ID" ] || [ -z "$ARM_SUBSCRIPTION_ID" ]; then
+            echo "Error: One or more required secrets (AZURE_USERNAME, AZURE_PASSWORD, ARM_TENANT_ID, ARM_SUBSCRIPTION_ID) are not set"
             exit 1
           fi
-          echo "Azure username is set (value masked for security)"
+          echo "All required secrets are set (values masked for security)"
 
       # Login to Azure CLI with enhanced error handling
       - name: Login to Azure CLI
@@ -71,25 +74,29 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         run: |
-          if [ -z "$AZURE_PASSWORD" ] || [ -z "$ARM_TENANT_ID" ] || [ -z "$ARM_SUBSCRIPTION_ID" ]; then
-            echo "Error: One or more required secrets (AZURE_PASSWORD, ARM_TENANT_ID, ARM_SUBSCRIPTION_ID) are not set"
-            exit 1
-          fi
           echo "Attempting Azure login..."
-          az login --username "$AZURE_USERNAME" --password "$AZURE_PASSWORD" --tenant "$ARM_TENANT_ID" > login_output.log 2> login_error.log
-          if [ $? -ne 0 ]; then
-            echo "Azure login failed. Error details:"
+          # Run login and capture output/errors
+          az login --username "$AZURE_USERNAME" --password "$AZURE_PASSWORD" --tenant "$ARM_TENANT_ID" --only-show-errors > login_output.log 2> login_error.log
+          LOGIN_STATUS=$?
+          if [ $LOGIN_STATUS -ne 0 ]; then
+            echo "Azure login failed. Error details from login_error.log:"
             cat login_error.log
+            echo "Login output (for debugging, sanitized):"
+            cat login_output.log
             exit 1
           fi
           echo "Azure login successful"
-          az account set --subscription "$ARM_SUBSCRIPTION_ID" 2> subscription_error.log
-          if [ $? -ne 0 ]; then
+          # Set subscription
+          az account set --subscription "$ARM_SUBSCRIPTION_ID" --only-show-errors 2> subscription_error.log
+          SUB_STATUS=$?
+          if [ $SUB_STATUS -ne 0 ]; then
             echo "Failed to set subscription. Error details:"
             cat subscription_error.log
             exit 1
           fi
           echo "Subscription set successfully"
+          # Show active account for debugging
+          az account show --query "{name:name, id:id, user:user.name}" -o table
 
       # Upload login logs on failure
       - name: Upload Azure login logs on failure
@@ -170,4 +177,4 @@ jobs:
 
       # Run Conftest tests
       - name: Conftest Test
-        run: conftest test tfplan.json -p policies --trace || { echo "Conftest test failed"; exit 1; }ß
+        run: conftest test tfplan.json -p policies --trace || { echo "Conftest test failed"; exit 1; }
