@@ -10,12 +10,6 @@ terraform {
 provider "azurerm" {
   features {}
   skip_provider_registration = true
-
-  # 提供虚假凭证以绕过 Azure CLI 认证
-  client_id     = "00000000-0000-0000-0000-000000000000"
-  client_secret = "dummy-secret"
-  tenant_id     = "00000000-0000-0000-0000-000000000000"
-  subscription_id = "00000000-0000-0000-0000-000000000000"
 }
 
 resource "azurerm_resource_group" "example" {
