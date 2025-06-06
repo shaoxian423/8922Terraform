@@ -18,6 +18,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Check for large files
+      - name: Check for large files
+        run: |
+          find . -type f -size +100M -exec ls -lh {} \;
+          if [ -n "$(find . -type f -size +100M)" ]; then
+            echo "Error: Large files detected (>100MB)"
+            exit 1
+          fi
+
       # Install Terraform (match your local version)
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -32,17 +41,39 @@ jobs:
           sudo mv conftest /usr/local/bin/
           conftest --version
 
-      # Validate Terraform configuration
-      - name: Terraform Validate
-        run: terraform validate || { echo "Terraform validation failed"; exit 1; }
+      # Test network connectivity to Terraform registry
+      - name: Test network connectivity
+        run: |
+          curl -I https://registry.terraform.io || { echo "Cannot reach Terraform registry"; exit 1; }
 
       # Initialize Terraform
       - name: Terraform Init
-        run: terraform init || { echo "Terraform init failed"; exit 1; }
+        run: |
+          terraform init -no-color -reconfigure 2> init_error.log
+          if [ -s init_error.log ]; then
+            echo "Terraform init errors:"
+            cat init_error.log
+            exit 1
+          fi
+
+      # Validate Terraform configuration
+      - name: Terraform Validate
+        run: |
+          terraform validate 2> validate_error.log
+          if [ -s validate_error.log ]; then
+            echo "Terraform validation errors:"
+            cat validate_error.log
+            exit 1
+          fi
 
       # Generate Terraform plan
       - name: Terraform Plan
         id: plan
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
         run: |
           terraform plan -out=tfplan -no-color 2> plan_error.log
           if [ -s plan_error.log ]; then
