@@ -19,7 +19,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Debug environment variables (for troubleshooting)
+      # Debug: Check for state files
+      - name: Check for Terraform State Files
+        run: |
+          ls -a || true
+          if [ -f "terraform.tfstate" ] || [ -f "terraform.tfstate.backup" ]; then
+            echo "Error: Terraform state files found in repository. Please remove them."
+            exit 1
+          fi
+
+      # Debug: Check environment variables
       - name: Debug Environment Variables
         run: env | grep ARM || true
 
@@ -27,7 +36,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.6.0 # 更新到最新版本
+          terraform_version: 1.6.0
 
       # Install Conftest
       - name: Install Conftest
