@@ -2,16 +2,20 @@ name: Terraform and Conftest CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   terraform-conftest:
-    name: Terraform Plan and OPA Test
+    name: Terraform Plan and OPA Policy Test
     runs-on: ubuntu-latest
+
+    env:
+      ARM_CLIENT_ID: "dummy"
+      ARM_CLIENT_SECRET: "dummy"
+      ARM_SUBSCRIPTION_ID: "00000000-0000-0000-0000-000000000000"
+      ARM_TENANT_ID: "00000000-0000-0000-0000-000000000000"
 
     steps:
       - name: Checkout code
@@ -20,23 +24,13 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.12.1  # 和你本地一致
+          terraform_version: 1.12.1
 
       - name: Install Conftest
         run: |
           curl -LO https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz
           tar -xzf conftest_0.45.0_Linux_x86_64.tar.gz
           sudo mv conftest /usr/local/bin/
-          conftest --version
-
-      - name: Install Azure CLI
-        run: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-
-      # - name: Azure Login
-      #  uses: azure/login@v1
-      #  with:
-      #    creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Terraform Init
         run: terraform init
@@ -44,8 +38,8 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -out=tfplan -no-color
 
-      - name: Convert Terraform Plan to JSON
+      - name: Convert Plan to JSON
         run: terraform show -json tfplan > tfplan.json
 
-      - name: Run Conftest Tests
+      - name: Run Conftest Policy Tests
         run: conftest test tfplan.json -p policies
