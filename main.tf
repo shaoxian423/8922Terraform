@@ -2,7 +2,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.0"
+      version = "~> 3.116.0" # Pin to a stable version
     }
   }
 }
@@ -10,8 +10,6 @@ terraform {
 provider "azurerm" {
   features {}
   skip_provider_registration = true
-
-  # 虚假信息，绕过 provider 校验
 }
 
 resource "azurerm_resource_group" "example" {
@@ -36,7 +34,7 @@ resource "azurerm_network_security_group" "example" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = "10.0.0.0/16" # 故意留一个策略触发项
+    source_address_prefix      = "10.0.0.0/16"
     destination_address_prefix = "*"
   }
 

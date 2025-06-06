@@ -19,12 +19,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Debug: Check for state files
-      - name: Check for Terraform State Files
+      # Debug: Check for state and plan files
+      - name: Check for Terraform State and Plan Files
         run: |
           ls -a || true
           if [ -f "terraform.tfstate" ] || [ -f "terraform.tfstate.backup" ]; then
             echo "Error: Terraform state files found in repository. Please remove them."
+            exit 1
+          fi
+          if [ -f "tfplan" ] || [ -f "tfplan.json" ]; then
+            echo "Error: Terraform plan files found in repository. Please remove them."
             exit 1
           fi
 
@@ -37,6 +41,10 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.0
+
+      # Debug: Confirm Terraform version
+      - name: Confirm Terraform Version
+        run: terraform --version
 
       # Install Conftest
       - name: Install Conftest
