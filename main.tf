@@ -12,10 +12,6 @@ provider "azurerm" {
   skip_provider_registration = true
 
   # 虚假信息，绕过 provider 校验
-  client_id       = "00000000-0000-0000-0000-000000000000"
-  client_secret   = "dummy"
-  tenant_id       = "00000000-0000-0000-0000-000000000000"
-  subscription_id = "00000000-0000-0000-0000-000000000000"
 }
 
 resource "azurerm_resource_group" "example" {
