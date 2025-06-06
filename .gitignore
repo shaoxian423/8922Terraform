@@ -3,4 +3,5 @@
 terraform.tfstate
 terraform.tfstate.backup
 tfplan
-tfplan.json
+tfplan.jsonterraform.tfstate
+terraform.tfstate.backup
