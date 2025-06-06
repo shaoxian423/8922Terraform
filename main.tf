@@ -34,8 +34,7 @@ resource "azurerm_network_security_group" "example" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    # source_address_prefix      = "0.0.0.0/0" # 开放规则，用于测试策略失败
-    source_address_prefix       = "10.0.0.0/16"
+    source_address_prefix      = "10.0.0.0/16" # 开放规则，用于测试策略失败
     destination_address_prefix = "*"
   }
 

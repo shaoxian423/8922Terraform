@@ -1,0 +1,142 @@
+name: Terraform and Conftest CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  terraform-conftest:
+    name: Terraform Plan and Conftest Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+
+      # Install Conftest
+      - name: Install Conftest
+        run: |
+          wget -q https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz
+          tar -xzf conftest_0.45.0_Linux_x86_64.tar.gz
+          sudo mv conftest /usr/local/bin/
+          conftest --version
+
+      # Initialize Terraform
+      - name: Terraform Init
+        run: |
+          terraform init -no-color -reconfigure 2> init_error.log
+          if [ -s init_error.log ]; then
+            echo "Terraform init errors:"
+            cat init_error.log
+            exit 1
+          fi
+
+      # Validate Terraform configuration
+      - name: Terraform Validate
+        run: |
+          terraform validate 2> validate_error.log
+          if [ -s validate_error.log ]; then
+            echo "Terraform validation errors:"
+            cat validate_error.log
+            exit 1
+          fi
+
+      # Generate Terraform plan
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan -out=tfplan -no-color > plan_output.log 2> plan_error.log
+          if [ -s plan_error.log ]; then
+            echo "Terraform plan errors (stderr):"
+            cat plan_error.log
+            exit 1
+          fi
+          if [ -s plan_output.log ]; then
+            echo "Terraform plan output (stdout):"
+            cat plan_output.log
+          fi
+          if [ ! -f tfplan ]; then
+            echo "Error: tfplan file not generated"
+            exit 1
+          fi
+
+      # Upload Terraform logs on failure
+      - name: Upload Terraform logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-logs
+          path: |
+            plan_error.log
+            plan_output.log
+
+      # Convert Terraform plan to JSON
+      - name: Convert Terraform Plan to JSON
+        run: terraform show -json tfplan > tfplan.json
+
+      # Verify JSON format
+      - name: Verify Terraform Plan JSON
+        run: jq . tfplan.json || { echo "Invalid JSON in tfplan.json"; exit 1; }
+
+      # Debug tfplan.json on failure
+      - name: Debug tfplan.json on failure
+        if: failure()
+        run: head tfplan.json
+
+      # Verify Conftest policies exist
+      - name: Check for OPA policies
+        run: |
+          if [ ! -d "policies" ] || [ -z "$(ls -A policies/*.rego 2>/dev/null)" ]; then
+            echo "Error: No OPA policy files found in 'policies' directory"
+            exit 1
+          fi
+          echo "OPA policies found:"
+          ls -l policies/*.rego
+
+      # Verify Conftest policies
+      - name: Verify Conftest Policies
+        run: |
+          conftest verify -p policies 2> conftest_verify_error.log
+          if [ $? -ne 0 ]; then
+            echo "Invalid OPA policies detected. Error details:"
+            cat conftest_verify_error.log
+            exit 1
+          fi
+          echo "OPA policies verified successfully"
+
+      # Run Conftest tests with detailed output
+      - name: Conftest Test with OPA Policies
+        run: |
+          conftest test tfplan.json -p policies --all-namespaces --trace > conftest_output.log 2> conftest_error.log
+          TEST_STATUS=$?
+          if [ $TEST_STATUS -ne 0 ]; then
+            echo "Conftest policy enforcement failed. Violations found:"
+            cat conftest_error.log
+            echo "Detailed test output:"
+            cat conftest_output.log
+            exit 1
+          fi
+          echo "Conftest policy enforcement passed. No violations found."
+          cat conftest_output.log
+
+      # Upload Conftest logs on failure
+      - name: Upload Conftest logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conftest-logs
+          path: |
+            conftest_output.log
+            conftest_error.log
