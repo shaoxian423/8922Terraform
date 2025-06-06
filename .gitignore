@@ -5,3 +5,7 @@ terraform.tfstate.backup
 tfplan
 tfplan.jsonterraform.tfstate
 terraform.tfstate.backup
+tfplan
+tfplan.json
+tfplan.local
+tfplan.json.local
