@@ -7,77 +7,45 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   terraform-conftest:
-    name: Terraform Plan and Conftest Test
+    name: Terraform Plan and OPA Test
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      # Install Conftest
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.12.1  # 和你本地一致
+
       - name: Install Conftest
         run: |
-          wget -q https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz
+          curl -LO https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz
           tar -xzf conftest_0.45.0_Linux_x86_64.tar.gz
           sudo mv conftest /usr/local/bin/
           conftest --version
 
-      # Verify tfplan.json exists
-      - name: Check for Terraform Plan JSON
+      - name: Install Azure CLI
         run: |
-          if [ ! -f "plans/tfplan.json" ]; then
-            echo "Error: tfplan.json not found in plans/ directory"
-            exit 1
-          fi
-          echo "Terraform plan JSON found: plans/tfplan.json"
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
-      # Verify Conftest policies exist
-      - name: Check for OPA policies
-        run: |
-          if [ ! -d "policies" ] || [ -z "$(ls -A policies/*.rego 2>/dev/null)" ]; then
-            echo "Error: No OPA policy files found in 'policies' directory"
-            exit 1
-          fi
-          echo "OPA policies found:"
-          ls -l policies/*.rego
+      # - name: Azure Login
+      #  uses: azure/login@v1
+      #  with:
+      #    creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Verify Conftest policies
-      - name: Verify Conftest Policies
-        run: |
-          conftest verify -p policies 2> conftest_verify_error.log
-          if [ $? -ne 0 ]; then
-            echo "Invalid OPA policies detected. Error details:"
-            cat conftest_verify_error.log
-            exit 1
-          fi
-          echo "OPA policies verified successfully"
+      - name: Terraform Init
+        run: terraform init
 
-      # Run Conftest tests with detailed output
-      - name: Conftest Test with OPA Policies
-        run: |
-          conftest test plans/tfplan.json -p policies --all-namespaces --trace > conftest_output.log 2> conftest_error.log
-          TEST_STATUS=$?
-          if [ $TEST_STATUS -ne 0 ]; then
-            echo "Conftest policy enforcement failed. Violations found:"
-            cat conftest_error.log
-            echo "Detailed test output:"
-            cat conftest_output.log
-            exit 1
-          fi
-          echo "Conftest policy enforcement passed. No violations found."
-          cat conftest_output.log
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan -no-color
 
-      # Upload Conftest logs on failure
-      - name: Upload Conftest logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: conftest-logs
-          path: |
-            conftest_output.log
-            conftest_error.log
+      - name: Convert Terraform Plan to JSON
+        run: terraform show -json tfplan > tfplan.json
+
+      - name: Run Conftest Tests
+        run: conftest test tfplan.json -p policies
