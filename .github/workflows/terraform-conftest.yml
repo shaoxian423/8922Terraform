@@ -79,6 +79,10 @@ jobs:
         id: plan
         env:
           ARM_SKIP_PROVIDER_REGISTRATION: "true"
+          ARM_CLIENT_ID: "00000000-0000-0000-0000-000000000000"
+          ARM_CLIENT_SECRET: "dummy-secret"
+          ARM_TENANT_ID: "00000000-0000-0000-0000-000000000000"
+          ARM_SUBSCRIPTION_ID: "00000000-0000-0000-0000-000000000000"
         run: |
           terraform plan -out=tfplan -no-color -refresh=false > plan_output.log 2> plan_error.log
           if [ -s plan_error.log ]; then
