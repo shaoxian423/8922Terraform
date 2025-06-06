@@ -16,35 +16,53 @@ jobs:
     steps:
       # Checkout the code
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # install Terraform
+      # Install Terraform (match your local version)
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.6.6
+          terraform_version: 1.12.1
 
-      # install Conftest
+      # Install Conftest (match your local version)
       - name: Install Conftest
         run: |
-          curl -LO https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz
+          wget -q https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz
           tar -xzf conftest_0.45.0_Linux_x86_64.tar.gz
           sudo mv conftest /usr/local/bin/
           conftest --version
 
-      # init Terraform
-      - name: Terraform Init
-        run: terraform init
+      # Validate Terraform configuration
+      - name: Terraform Validate
+        run: terraform validate || { echo "Terraform validation failed"; exit 1; }
 
-      # Setup Terraform plan
+      # Initialize Terraform
+      - name: Terraform Init
+        run: terraform init || { echo "Terraform init failed"; exit 1; }
+
+      # Generate Terraform plan
       - name: Terraform Plan
         id: plan
-        run: terraform plan -out=tfplan -no-color
+        run: |
+          terraform plan -out=tfplan -no-color 2> plan_error.log
+          if [ -s plan_error.log ]; then
+            echo "Terraform plan errors:"
+            cat plan_error.log
+            exit 1
+          fi
 
-      # Transform JSON format
+      # Convert Terraform plan to JSON
       - name: Convert Terraform Plan to JSON
         run: terraform show -json tfplan > tfplan.json
 
+      # Verify JSON format
+      - name: Verify Terraform Plan JSON
+        run: jq . tfplan.json || { echo "Invalid JSON in tfplan.json"; exit 1; }
+
+      # Verify Conftest policies
+      - name: Verify Conftest Policies
+        run: conftest verify -p policies || { echo "Invalid policies"; exit 1; }
+
       # Run Conftest tests
       - name: Conftest Test
-        run: conftest test tfplan.json -p policies
+        run: conftest test tfplan.json -p policies --trace || { echo "Conftest test failed"; exit 1; }
