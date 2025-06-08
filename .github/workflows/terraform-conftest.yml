@@ -15,65 +15,65 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 检出代码
-      - name: 检出代码
+      # Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # 安装 Conftest
-      - name: 安装 Conftest
+      # Install Conftest
+      - name: Install Conftest
         run: |
           wget -q https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz
           tar -xzf conftest_0.45.0_Linux_x86_64.tar.gz
           sudo mv conftest /usr/local/bin/
           conftest --version
 
-      # 验证 tfplan.json 是否存在
-      - name: 检查 Terraform 计划 JSON
+      # Verify tfplan.json existence
+      - name: Check Terraform Plan JSON
         run: |
           if [ ! -f "tfplan.json" ]; then
-            echo "错误：未找到 tfplan.json"
+            echo "Error: tfplan.json not found"
             exit 1
           fi
-          echo "找到 Terraform 计划 JSON: tfplan.json"
+          echo "Found Terraform plan JSON: tfplan.json"
 
-      # 验证 Conftest 策略是否存在
-      - name: 检查 OPA 策略
+      # Verify Conftest policies existence
+      - name: Check OPA policies
         run: |
           if [ ! -d "policies" ] || [ -z "$(ls -A policies/*.rego 2>/dev/null)" ]; then
-            echo "错误：'policies' 目录中未找到 OPA 策略文件"
+            echo "Error: No OPA policy files found in 'policies' directory"
             exit 1
           fi
-          echo "找到 OPA 策略："
+          echo "Found OPA policies:"
           ls -l policies/*.rego
 
-      # 验证 Conftest 策略
-      - name: 验证 Conftest 策略
+      # Verify Conftest policies
+      - name: Verify Conftest Policies
         run: |
           conftest verify -p policies 2> conftest_verify_error.log
           if [ $? -ne 0 ]; then
-            echo "检测到无效的 OPA 策略。错误详情："
+            echo "Invalid OPA policies detected. Error details:"
             cat conftest_verify_error.log
             exit 1
           fi
-          echo "OPA 策略验证成功"
+          echo "OPA policies verified successfully"
 
-      # 运行 Conftest 测试并输出详细日志
-      - name: 使用 OPA 策略运行 Conftest 测试
+      # Run Conftest test with OPA policies and detailed logs
+      - name: Run Conftest Test with OPA Policies
         run: |
           conftest test tfplan.json -p policies --all-namespaces --trace > conftest_output.log 2> conftest_error.log
           TEST_STATUS=$?
           if [ $TEST_STATUS -ne 0 ]; then
-            echo "Conftest 策略执行失败。发现违规："
+            echo "Conftest policy enforcement failed. Violations found:"
             cat conftest_error.log
-            echo "详细测试输出："
+            echo "Detailed test output:"
             cat conftest_output.log
             exit 1
           fi
-          echo "Conftest 策略执行通过。未发现违规。"
+          echo "Conftest policy enforcement passed. No violations found."
           cat conftest_output.log
 
-      # 失败时上传 Conftest 日志
-      - name: 失败时上传 Conftest 日志
+      # Upload Conftest logs on failure
+      - name: Upload Conftest logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
