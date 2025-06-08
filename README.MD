@@ -39,8 +39,8 @@ GitHub Account: Required for creating a repository and running GitHub Actions wo
 
 Installation Steps
 # 1. Install Terraform
-```bash
 On macOS (Apple Silicon)
+```bash
 cd /tmp
 curl -O https://releases.hashicorp.com/terraform/1.6.6/terraform_1.6.6_darwin_arm64.zip
 unzip terraform_1.6.6_darwin_arm64.zip
@@ -326,13 +326,13 @@ Create a repository named 8922Terraform under your GitHub account (e.g., shaoxia
 
 Initialize Local Git Repository and Push:
 
-
+```bash
 git init
 git add .
 git commit -m "Initial commit with Terraform, Conftest, and GitHub Actions"
 git remote add origin https://github.com/shaoxian423/8922Terraform.git
 git push -u origin main
-
+```
 Verify Workflow:
 Visit your GitHub repository (https://github.com/shaoxian423/8922Terraform).
 Go to the Actions tab to check the workflow run.
