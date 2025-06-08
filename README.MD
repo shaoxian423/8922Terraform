@@ -39,13 +39,14 @@ GitHub Account: Required for creating a repository and running GitHub Actions wo
 
 Installation Steps
 # 1. Install Terraform
+```bash
 On macOS (Apple Silicon)
 cd /tmp
 curl -O https://releases.hashicorp.com/terraform/1.6.6/terraform_1.6.6_darwin_arm64.zip
 unzip terraform_1.6.6_darwin_arm64.zip
 sudo mv terraform /usr/local/bin/
 terraform -v
-
+```
 On WSL (Ubuntu)
 ```bash
 cd /tmp
