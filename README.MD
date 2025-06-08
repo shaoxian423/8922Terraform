@@ -47,30 +47,37 @@ sudo mv terraform /usr/local/bin/
 terraform -v
 
 On WSL (Ubuntu)
+```bash
 cd /tmp
 curl -O https://releases.hashicorp.com/terraform/1.6.6/terraform_1.6.6_linux_amd64.zip
 unzip terraform_1.6.6_linux_amd64.zip
 sudo mv terraform /usr/local/bin/
 terraform -v
-
+```
 Expected Output:
-
-The terraform -v command should output Terraform v1.6.6.
+```bash
+The terraform -v 
+```
+command should output Terraform v1.6.6.
 
 # 2. Install Conftest
 On macOS (Apple Silicon)
+```bash
 cd /tmp
 curl -LO https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Darwin_arm64.tar.gz
 tar -xzf conftest_0.45.0_Darwin_arm64.tar.gz
 sudo mv Zconftest /usr/local/bin/
 conftest --version
+```
 
 On WSL (Ubuntu)
+```bash
 cd /tmp
 curl -LO https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz
 tar -xzf conftest_0.45.0_Linux_x86_64.tar.gz
 sudo mv conftest /usr/local/bin/
 conftest --version
+```
 
 Expected Output:
 
@@ -78,13 +85,15 @@ The conftest --version command should output Conftest: 0.45.0.
 
 # 3 Usage Instructions
 3.1 Initialize Terraform
+```bash
 terraform init
-
+```
 
 Purpose: Initializes the Terraform working directory and downloads required provider plugins (e.g., hashicorp/local).
 
 3.2 Generate and Save Terraform Plan
 3.2.1 Create main.tf
+```bash
 Create a file named main.tf with the following content:
 terraform {
   required_providers {
@@ -131,28 +140,33 @@ resource "azurerm_network_security_group" "example" {
     Owner       = "shaoxian"
   }
 }
-
+```
 3.2.2 Reinitialize (if needed)
 If you made changes to main.tf, reinitialize Terraform:
+```bash
 terraform init
-
+```
 3.2.3 Generate Terraform Plan
 Generate a Terraform plan and save it as tfplan:
+```bash
 terraform plan -out=tfplan
-
+```
 3.2.4 Convert to JSON Format
 Convert the Terraform plan to JSON format for Conftest testing:
+```bash
 terraform show -json tfplan > tfplan.json
-
+```
 # 4. Test Against Policies
 4.1 Create Policies Directory
+```bash
 mkdir policies
-
+```
 4.2 Create Policy File
 Create a policy file named policy.rego inside the policies directory with the following content:
 package main
 
 # Strategy 1: Prohibit overly permissive firewall rules
+```bash
 deny[msg] {
   resource := input.resource_changes[_]
   resource.type == "azurerm_network_security_group"
@@ -162,8 +176,9 @@ deny[msg] {
   rule.destination_port_range != "443"
   msg := sprintf("NSG '%s' contains an overly permissive inbound rule allowing '0.0.0.0/0' on port '%s'.", [resource.change.after.name, rule.destination_port_range])
 }
-
+```
 # Strategy 2: Enforce Environment tags
+```bash
 deny[msg] {
   resource := input.resource_changes[_]
   allowed_types := ["azurerm_resource_group", "azurerm_network_security_group"]
@@ -171,8 +186,9 @@ deny[msg] {
   not resource.change.after.tags["Environment"]
   msg := sprintf("Resource '%s' is missing required tag 'Environment'.", [resource.change.after.name])
 }
-
+```
 # Strategy 3: Enforce Owner tags
+```bash
 deny[msg] {
   resource := input.resource_changes[_]
   allowed_types := ["azurerm_resource_group", "azurerm_network_security_group"]
@@ -180,6 +196,7 @@ deny[msg] {
   not resource.change.after.tags["Owner"]
   msg := sprintf("Resource '%s' is missing required tag 'Owner'.", [resource.change.after.name])
 }
+```
 
 
 Fail:
@@ -190,8 +207,15 @@ FAIL - tfplan.json - main - NSG 'example-nsg' contains an overly permissive inbo
 FAIL - tfplan.json - main - Resource 'example-nsg' is missing required tag 'Owner'.
 ![alt text](image-3.png)
 
+If we completely revise main.tf to meet the policy requirements, the test results are as follows:
+![alt text](image-1.png)
+
 # 5. Apply this plan to Azure
-by running: terraform apply tfplan. Terraform will execute the operations based on the tfplan file, creating or updating Azure resources.
+by running: 
+```bash 
+terraform apply tfplan
+```
+The Terraform will execute the operations based on the tfplan file, creating or updating Azure resources.
 ![alt text](image-5.png)
 
 Check on Azure portal:
@@ -205,12 +229,11 @@ Check on Azure portal:
 
 # 6. GitHub Actions Integration
 6.1 Create Workflow Directory
+```bash
 mkdir -p .github/workflows
-
+```
 6.2 Create Workflow File
 Create a file named terraform-conftest.yml inside the .github/workflows directory with the following content:
-name: Terraform and Conftest CI
-
 name: Terraform and Conftest CI
 
 on:
