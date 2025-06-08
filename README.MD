@@ -199,10 +199,17 @@ deny[msg] {
 }
 ```
 
+4.3 running test:
+```bash
+conftest test tfplan.json -p policies
+```
+
 Fail:
 
 If the content does not match (e.g., "miss owner or source_address_prefix changed"), the test fails:
 ![alt text](image-3.png)
+
+Success:
 
 If we completely revise main.tf to meet the policy requirements, the test results are as follows:
 ![alt text](image-1.png)
