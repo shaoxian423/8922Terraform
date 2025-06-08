@@ -2,14 +2,14 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.116.0"
+      version = "~> 3.0"
     }
   }
 }
 
 provider "azurerm" {
   features {}
-  skip_provider_registration = true
+  subscription_id = "127e7a44-d802-42e4-b654-a434382666ac" # Azure for Students 订阅 ID
 }
 
 resource "azurerm_resource_group" "example" {
@@ -34,12 +34,12 @@ resource "azurerm_network_security_group" "example" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = "10.0.0.0/16"
+    source_address_prefix      = "10.0.0.0/16" # Open rule, used to test policy failure
     destination_address_prefix = "*"
   }
 
   tags = {
     Environment = "Production"
-    Owner       = "shaoxianduan"
+    Owner       = "shaoxian"
   }
 }
