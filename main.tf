@@ -9,7 +9,7 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id = "127e7a44-d802-42e4-b654-a434382666ac" # Azure for Students 订阅 ID
+  subscription_id = "127e7a44-d802-42e4-b654-a434382666ac" # Azure for Students subscript ID
 }
 
 resource "azurerm_resource_group" "example" {
@@ -17,7 +17,7 @@ resource "azurerm_resource_group" "example" {
   location = "East US"
   tags = {
     Environment = "Production"
-    # Owner       = "shaoxianduan"
+    Owner       = "shaoxianduan"
   }
 }
 
