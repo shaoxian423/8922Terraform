@@ -92,6 +92,7 @@ terraform init
 Purpose: Initializes the Terraform working directory and downloads required provider plugins (e.g., hashicorp/local).
 
 3.2 Generate and Save Terraform Plan
+
 3.2.1 Create main.tf
 ```bash
 terraform {
@@ -197,13 +198,9 @@ deny[msg] {
 }
 ```
 
-
 Fail:
 
 If the content does not match (e.g., "miss owner or source_address_prefix changed"), the test fails:
-
-FAIL - tfplan.json - main - NSG 'example-nsg' contains an overly permissive inbound rule allowing '0.0.0.0/0' on port '22'.
-FAIL - tfplan.json - main - Resource 'example-nsg' is missing required tag 'Owner'.
 ![alt text](image-3.png)
 
 If we completely revise main.tf to meet the policy requirements, the test results are as follows:
@@ -344,7 +341,10 @@ The workflow should execute all steps and display a PASS result for the Conftest
 
 
 # 7. Terraform Destory
-running after : terraform destroy
+running after : 
+```bash
+terraform destroy
+```
 ![alt text](image-10.png)
 type:yes
 ![alt text](image-11.png)
