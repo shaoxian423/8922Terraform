@@ -17,7 +17,7 @@ resource "azurerm_resource_group" "example" {
   location = "East US"
   tags = {
     Environment = "Production"
-    Owner       = "shaoxianduan"
+    # Owner       = "shaoxianduan"
   }
 }
 
