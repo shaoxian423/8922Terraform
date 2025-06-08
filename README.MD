@@ -94,7 +94,6 @@ Purpose: Initializes the Terraform working directory and downloads required prov
 3.2 Generate and Save Terraform Plan
 3.2.1 Create main.tf
 ```bash
-Create a file named main.tf with the following content:
 terraform {
   required_providers {
     azurerm = {
@@ -106,7 +105,7 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id = "127e7a44-d802-42e4-b654-a434382666ac" # Azure for Students 订阅 ID
+  subscription_id = "127e7a44-d802-42e4-b654-a434382666ac" # Azure for Students subcsript ID
 }
 
 resource "azurerm_resource_group" "example" {
@@ -163,7 +162,7 @@ mkdir policies
 ```
 4.2 Create Policy File
 Create a policy file named policy.rego inside the policies directory with the following content:
-package main
+in package main
 
 # Strategy 1: Prohibit overly permissive firewall rules
 ```bash
@@ -219,6 +218,7 @@ The Terraform will execute the operations based on the tfplan file, creating or 
 ![alt text](image-5.png)
 
 Check on Azure portal:
+
 5.1 Tag
 ![alt text](image-7.png)
 
@@ -234,6 +234,7 @@ mkdir -p .github/workflows
 ```
 6.2 Create Workflow File
 Create a file named terraform-conftest.yml inside the .github/workflows directory with the following content:
+```bash
 name: Terraform and Conftest CI
 
 on:
@@ -317,7 +318,7 @@ jobs:
           path: |
             conftest_output.log
             conftest_error.log
-
+```
 6.3 Push Code to GitHub
 
 Create a New Repository on GitHub:
