@@ -34,7 +34,7 @@ resource "azurerm_network_security_group" "example" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = "0.0.0.0/0" # Open rule, used to test policy failure
+    source_address_prefix      = "10.0.0.0/16" # Open rule, used to test policy failure
     destination_address_prefix = "*"
   }
 
