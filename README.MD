@@ -8,16 +8,20 @@ This project demonstrates a CI/CD pipeline using Terraform and Conftest to autom
 
 ```bash
 .
+├── .github/                # GitHub Actions CI/CD pipeline
+│   └── terraform-conftest.yml
 ├── terraform/              # Terraform configuration files
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   └── policy/             # Rego policies for Conftest
-│       └── deny_owner.rego
-├── .github/workflows/      # GitHub Actions CI/CD pipeline
-│   └── ci.yml
+│   └── terraform.lock.hcl
+├── policies/               # Rego policies for Conftest
+│   └── policy.rego
+├── main.tf                 # Main Terraform configuration file
+├── .gitignore              # Files to ignore during Git operations
 ├── README.md               # Project documentation
-└── .conftestignore         # Files to ignore during policy testing
+├── tfplan.json             # Terraform plan in JSON format for Conftest testing
+├── terraform.tfstate       # Terraform state file
+├── terraform.tfstate.backup # Terraform state backup file
+├── tfplan                  # Terraform plan file
+└── (other files, e.g., images, documents)
 ```
 
 ## Getting Started
