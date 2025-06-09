@@ -1,0 +1,17 @@
+az login
+terraform --version
+conftest --version
+git status
+
+git add .
+git commit -m "demo1"
+git push origin main
+
+terraform init
+...
+terraform plan -out=tfplan
+terraform show -json tfplan > tfplan.json
+
+conftest test tfplan.json -p policies
+
+terraform apply tfplan
