@@ -39,7 +39,7 @@ resource "azurerm_network_security_group" "example" {
   }
 
   tags = {
-    Environment = "Production"
-    Owner       = "shaoxian"
+    # Environment = "Production"
+    # Owner       = "shaoxian"
   }
 }
