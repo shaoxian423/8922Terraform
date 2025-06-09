@@ -15,3 +15,5 @@ terraform show -json tfplan > tfplan.json
 conftest test tfplan.json -p policies
 
 terraform apply tfplan
+
+# Comment out these two lines
